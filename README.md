@@ -17,8 +17,10 @@ Bu proje, bilgisayardan telefona aktarılan kod dosyalarını mobil ortamda, int
 * **İşaretleme & Stil:** HTML, CSS, [Highlight.js](https://highlightjs.org/)
 
 ## 📸 Ekran Görüntüleri
-*(Buraya bana attığın o son ekran görüntüsünü koymalısın)*
-![SyntaxGo Ekran Görüntüsü](ekran_goruntusu_linki_buraya_gelecek)
+<img width="393" height="883" alt="Ekran görüntüsü 2026-06-15 025742" src="https://github.com/user-attachments/assets/308e88d4-020c-4cfd-8fd7-884fec932a94" />
+<img width="393" height="882" alt="Ekran görüntüsü 2026-06-15 025649" src="https://github.com/user-attachments/assets/53829b68-d842-4b73-8207-c66307b3f8e4" />
+<img width="394" height="881" alt="Ekran görüntüsü 2026-06-15 025717" src="https://github.com/user-attachments/assets/05d62f87-0609-4294-81e2-6acbc17ad74d" />
+
 
 ## 🚀 Kurulum ve Çalıştırma
 1. Bu repoyu bilgisayarınıza klonlayın.
