@@ -96,6 +96,26 @@ public class MainActivity extends AppCompatActivity {
                 Toast.makeText(MainActivity.this, "Code copied to clipboard", Toast.LENGTH_SHORT).show();
             }
         });
+        // --- DIŞARIDAN GELEN DOSYAYI (OPEN WITH) YAKALAMA ---
+        Intent externalIntent = getIntent();
+        if (Intent.ACTION_VIEW.equals(externalIntent.getAction()) && externalIntent.getData() != null) {
+            Uri externalUri = externalIntent.getData();
+            try {
+                // Kodu oku
+                currentRawCode = readFileContent(externalUri);
+
+                // HTML'e çevir ve WebView'a yükle
+                String htmlContent = generateHtmlWithHighlightJs(currentRawCode);
+                webViewCode.loadDataWithBaseURL(null, htmlContent, "text/html", "utf-8", null);
+
+                // Ortadaki başlangıç ekranını gizle, okuma ekranını aç
+                layoutHome.setVisibility(View.GONE);
+                layoutViewer.setVisibility(View.VISIBLE);
+            } catch (Exception e) {
+                Toast.makeText(this, "Error opening file", Toast.LENGTH_SHORT).show();
+            }
+        }
+        // ----------------------------------------------------
     }
 
     /**
