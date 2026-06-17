@@ -5,21 +5,34 @@ import android.os.Bundle;
 import android.os.Handler;
 import androidx.appcompat.app.AppCompatActivity;
 
-/**
- * Splash screen shown upon app launch.
- * It displays the app identity for a brief moment.
- */
 public class SplashActivity extends AppCompatActivity {
+
+    // Declaring these globally so I can kill the handler later to prevent memory leaks
+    private Handler splashHandler;
+    private Runnable splashRunnable;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_splash);
 
-        // Schedule a transition to the main screen after a delay.
-        new Handler().postDelayed(() -> {
+        splashHandler = new Handler();
+
+        // Setting up the transition logic to the main screen
+        splashRunnable = () -> {
             startActivity(new Intent(SplashActivity.this, MainActivity.class));
-            // Close this activity so the user doesn't return to it via the back button.
             finish();
-        }, 2000); // Wait for 2 seconds.
+        };
+
+        splashHandler.postDelayed(splashRunnable, 2000);
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        // Cleaning up the callbacks to avoid zombie handlers if the user closes the app early
+        if (splashHandler != null && splashRunnable != null) {
+            splashHandler.removeCallbacks(splashRunnable);
+        }
     }
 }

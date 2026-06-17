@@ -1,3 +1,7 @@
 <resources>
     <string name="app_name">SyntaxGo</string>
+    <string name="select_file_text">Select File</string>
+    <string name="syntaxgo">SyntaxGo</string>
+    <string name="new_file">New File</string>
+    <string name="copy">Copy</string>
 </resources>

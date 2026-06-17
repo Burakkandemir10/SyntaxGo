@@ -2,7 +2,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#121212">
+    android:background="@color/bg_dark_primary">
 
     <LinearLayout
         android:id="@+id/layoutHome"
@@ -15,8 +15,8 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="SyntaxGo"
-            android:textColor="#FFFFFF"
+            android:text="@string/syntaxgo"
+            android:textColor="@color/white"
             android:textSize="48sp"
             android:textStyle="bold" />
 
@@ -25,8 +25,8 @@
             android:layout_width="200dp"
             android:layout_height="60dp"
             android:layout_marginTop="30dp"
-            android:text="Select File"  app:cornerRadius="30dp"
-            android:backgroundTint="#6200EE"/>
+            android:text="@string/select_file_text"  app:cornerRadius="30dp"
+            android:backgroundTint="@color/purplee"/>
     </LinearLayout>
 
     <LinearLayout
@@ -46,20 +46,20 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="New File" android:backgroundTint="#333333" />
+                android:text="@string/new_file" android:backgroundTint="#333333" />
             <Button
                 android:id="@+id/btnCopy"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="8dp"
-                android:text="Copy" /> </LinearLayout>
+                android:text="@string/copy" /> </LinearLayout>
 
         <androidx.cardview.widget.CardView
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:layout_marginTop="16dp"
             app:cardCornerRadius="12dp"
-            app:cardBackgroundColor="#1E1E1E">
+            app:cardBackgroundColor="@color/dark_gray">
 
             <WebView
                 android:id="@+id/webViewCode"

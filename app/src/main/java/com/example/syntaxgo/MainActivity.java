@@ -7,6 +7,8 @@ import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.view.View;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
@@ -18,6 +20,8 @@ import androidx.appcompat.app.AppCompatActivity;
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * Main activity that handles file selection, code displaying, and interaction.
@@ -31,6 +35,10 @@ public class MainActivity extends AppCompatActivity {
     private View layoutHome;
     private View layoutViewer;
 
+    // --- BACKGROUND WORKERS (To prevent Main Thread freezing/ANR) ---
+    private final ExecutorService executorService = Executors.newSingleThreadExecutor();
+    private final Handler mainThreadHandler = new Handler(Looper.getMainLooper());
+
     // Launcher to handle the result of the file selection Intent.
     private final ActivityResultLauncher<Intent> filePickerLauncher = registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(),
@@ -38,16 +46,8 @@ public class MainActivity extends AppCompatActivity {
                 if (result.getResultCode() == Activity.RESULT_OK && result.getData() != null) {
                     Uri uri = result.getData().getData();
                     if (uri != null) {
-                        // 1. Read the code from the selected file.
-                        currentRawCode = readFileContent(uri);
-
-                        // 2. Generate and load the HTML template into the WebView.
-                        String htmlContent = generateHtmlWithHighlightJs(currentRawCode);
-                        webViewCode.loadDataWithBaseURL(null, htmlContent, "text/html", "utf-8", null);
-
-                        // 3. Switch layouts: hide home screen, show code viewer.
-                        layoutHome.setVisibility(View.GONE);
-                        layoutViewer.setVisibility(View.VISIBLE);
+                        // No blocking here. Passing the URI directly to the background worker.
+                        processAndDisplayFileInBackground(uri);
                     }
                 }
             }
@@ -92,57 +92,69 @@ public class MainActivity extends AppCompatActivity {
                 ClipData clip = ClipData.newPlainText("SyntaxGo Code", currentRawCode);
                 clipboard.setPrimaryClip(clip);
 
-                // Show a brief English confirmation notification.
                 Toast.makeText(MainActivity.this, "Code copied to clipboard", Toast.LENGTH_SHORT).show();
             }
         });
-        // --- DIŞARIDAN GELEN DOSYAYI (OPEN WITH) YAKALAMA ---
+
+        // --- HANDLE EXTERNAL FILE INTENTS (OPEN WITH) ---
         Intent externalIntent = getIntent();
         if (Intent.ACTION_VIEW.equals(externalIntent.getAction()) && externalIntent.getData() != null) {
             Uri externalUri = externalIntent.getData();
-            try {
-                // Kodu oku
-                currentRawCode = readFileContent(externalUri);
-
-                // HTML'e çevir ve WebView'a yükle
-                String htmlContent = generateHtmlWithHighlightJs(currentRawCode);
-                webViewCode.loadDataWithBaseURL(null, htmlContent, "text/html", "utf-8", null);
-
-                // Ortadaki başlangıç ekranını gizle, okuma ekranını aç
-                layoutHome.setVisibility(View.GONE);
-                layoutViewer.setVisibility(View.VISIBLE);
-            } catch (Exception e) {
-                Toast.makeText(this, "Error opening file", Toast.LENGTH_SHORT).show();
-            }
+            // Utilizing the background worker here as well to keep the UI thread smooth.
+            processAndDisplayFileInBackground(externalUri);
         }
-        // ----------------------------------------------------
     }
 
     /**
-     * Reads the entire content of a file given its Uri.
+     * Reads the file asynchronously in the background and updates the WebView when done.
+     * This architecture ensures the UI never freezes, even with large files.
      */
-    private String readFileContent(Uri uri) {
-        StringBuilder stringBuilder = new StringBuilder();
-        try (InputStream inputStream = getContentResolver().openInputStream(uri);
-             BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream))) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                stringBuilder.append(line).append("\n");
+    private void processAndDisplayFileInBackground(Uri uri) {
+        // Show a loading indicator (crucial for large file reads)
+        Toast.makeText(this, "Reading file...", Toast.LENGTH_SHORT).show();
+
+        // 1. Offload the heavy I/O operations to the background thread
+        executorService.execute(() -> {
+            StringBuilder stringBuilder = new StringBuilder();
+            try (InputStream inputStream = getContentResolver().openInputStream(uri);
+                 BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    stringBuilder.append(line).append("\n");
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+                final String errorMsg = "Error opening file: " + e.getMessage();
+                // If an exception occurs, we must return to the Main Thread to show the Toast safely
+                mainThreadHandler.post(() -> Toast.makeText(MainActivity.this, errorMsg, Toast.LENGTH_LONG).show());
+                return;
             }
-        } catch (Exception e) {
-            e.printStackTrace();
-            return "Error: " + e.getMessage();
-        }
-        return stringBuilder.toString();
+
+            final String finalCode = stringBuilder.toString();
+
+            // 2. I/O complete! Take the extracted code and return to the Main (UI) Thread
+            mainThreadHandler.post(() -> {
+                currentRawCode = finalCode;
+
+                // Sanitize and generate HTML, then load into WebView
+                String htmlContent = generateHtmlWithHighlightJs(currentRawCode);
+                webViewCode.loadDataWithBaseURL(null, htmlContent, "text/html", "utf-8", null);
+
+                // Hide the home layout and display the code viewer
+                layoutHome.setVisibility(View.GONE);
+                layoutViewer.setVisibility(View.VISIBLE);
+            });
+        });
     }
 
     /**
      * Generates a dynamic HTML string with syntax highlighting and line numbers.
-     * Uses assets stored locally for offline capability.
+     * Uses assets stored locally for offline capability and htmlEncode for XSS prevention.
      */
     private String generateHtmlWithHighlightJs(String code) {
-        // Sanitize code by replacing HTML special characters.
-        String safeCode = code.replace("<", "&lt;").replace(">", "&gt;");
+
+        // Proper sanitization to prevent XSS and HTML parsing errors in WebView
+        String safeCode = android.text.TextUtils.htmlEncode(code);
 
         // The HTML template with embedded styling and highlighting logic.
         return "<!DOCTYPE html>\n" +
